@@ -1,10 +1,10 @@
-target 'AXCGiphy', :exclusive => true do
+target 'AXCGiphy' do
   pod "Giphy-iOS", :path => "../"
   pod 'AFNetworking/Serialization', '~> 2.3.1'
   pod 'AnimatedGIFImageSerialization', '~> 0.2.0'
 end
 
-target 'Tests', :exclusive => true do
+target 'Tests' do
   pod "Giphy-iOS", :path => "../"
 
   pod 'Specta', '~> 0.2.1'

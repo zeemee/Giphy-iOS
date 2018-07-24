@@ -91,6 +91,11 @@ static NSString * kGiphyAPIKey;
     return gifArray;
 }
 
++ (NSURLRequest *) giphySearchRequestWithRating:(NSString *) term limit:(NSUInteger) limit offset:(NSInteger) offset rating:(NSString*) rating
+{
+    return [self requestForEndPoint:@"/search" params:@{@"limit": @(limit), @"offset": @(offset), @"q": term, @"rating": rating}];
+}
+
 + (NSURLRequest *) giphySearchRequestForTerm:(NSString *) term limit:(NSUInteger) limit offset:(NSInteger) offset
 {
     return [self requestForEndPoint:@"/search" params:@{@"limit": @(limit), @"offset": @(offset), @"q": term}];
@@ -122,7 +127,7 @@ static NSString * kGiphyAPIKey;
 
 + (NSURLRequest *) requestForEndPoint:(NSString *) endpoint params:(NSDictionary *) params
 {
-    NSString * base = @"http://api.giphy.com/v1/gifs";
+    NSString * base = @"https://api.giphy.com/v1/gifs";
     NSString * withEndPoint = [NSString stringWithFormat:@"%@%@", base, endpoint];
     NSError * error;
     
@@ -131,6 +136,32 @@ static NSString * kGiphyAPIKey;
     NSURLRequest * request =  [[AFHTTPRequestSerializer serializer] requestWithMethod:@"GET" URLString:withEndPoint parameters:paramsWithAPIKey error:&error];
     return request;
 }
+
++ (NSURLSessionDataTask *) searchGiphyWithRating:(NSString *) searchTerm rating:(NSString *) rating limit:(NSUInteger) limit offset:(NSUInteger) offset completion:(void (^) (NSArray * results, NSError * error)) block
+{
+    NSURLSession * session = [NSURLSession sharedSession];
+    NSURLRequest * request = [self giphySearchRequestWithRating:searchTerm limit:limit offset:offset rating:rating];
+    NSURLSessionDataTask * task = [session dataTaskWithRequest:request  completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
+        // network error
+        if (error) {
+            block(nil, error);
+        } else {
+            // json serialize error
+            NSError * error;
+            NSDictionary * results = [NSJSONSerialization JSONObjectWithData:data options:NSJSONReadingAllowFragments error:&error];
+            error = error ?: [self customErrorFromResults:results];
+            if (error) {
+                block(nil, error);
+            } else {
+                NSArray * gifArray = [AXCGiphy AXCGiphyArrayFromDictArray:results[@"data"]];
+                block(gifArray, nil);
+            }
+        }
+    }];
+    [task resume];
+    return task;
+}
+
 
 + (NSURLSessionDataTask *) searchGiphyWithTerm:(NSString *) searchTerm limit:(NSUInteger) limit offset:(NSUInteger) offset completion:(void (^) (NSArray * results, NSError * error)) block
 {
